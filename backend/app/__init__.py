@@ -19,6 +19,10 @@ def create_app():
     from .saas_admin.routes import saas_admin_bp
     app.register_blueprint(saas_admin_bp)
     
+    # Conectamos el módulo clinica (NUEVO)
+    from .clinica.routes import clinica_bp
+    app.register_blueprint(clinica_bp)
+    
     @app.route('/api/status', methods=['GET'])
     def status():
         return jsonify({"status": "online"})

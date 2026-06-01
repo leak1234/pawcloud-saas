@@ -100,7 +100,7 @@ def registrar_clinica():
         return jsonify({"error": f"Falla en servidor: {str(e)}"}), 500
 
 
-# 4. LOGIN
+# 4. LOGIN 
 @saas_admin_bp.route('/api/admin/login', methods=['POST'])
 def login():
     datos = request.get_json()
@@ -109,13 +109,22 @@ def login():
     if usuario and check_password_hash(usuario.password_hash, datos.get('password')):
         if not usuario.activo:
             return jsonify({"error": "Esta cuenta está suspendida."}), 403
+        
+        # Obtenemos el nombre de la clínica si existe
+        nombre_clinica = "PawCloud Vet"
+        if usuario.clinica_id:
+            clinica = Clinica.query.get(usuario.clinica_id)
+            if clinica:
+                nombre_clinica = clinica.nombre_negocio
             
         return jsonify({
             "mensaje": "Login exitoso",
             "usuario": usuario.nombre_completo,
             "clinica_id": usuario.clinica_id,
-            "rol": usuario.rol
+            "rol": usuario.rol,
+            "nombre_clinica": nombre_clinica 
         }), 200
+        
     return jsonify({"error": "Correo o contraseña incorrectos"}), 401
 
 

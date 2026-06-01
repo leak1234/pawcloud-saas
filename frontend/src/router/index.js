@@ -1,13 +1,25 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../modules/saas_admin/views/LoginView.vue'
 
-// Importamos el Layout base
+// ============================================================================
+// IMPORTACIONES: SÚPER ADMINISTRADOR (SAAS)
+// ============================================================================
 import SaasLayout from '../core/layouts/SaasLayout.vue'
-
-// Importamos las Vistas (Las "habitaciones")
-import DashboardView from '../modules/saas_admin/views/DashboardView.vue'
+import SaasDashboardView from '../modules/saas_admin/views/DashboardView.vue' 
 import ClinicasView from '../modules/saas_admin/views/ClinicasView.vue'
 
+// ============================================================================
+// IMPORTACIONES: MÓDULO DE LA CLÍNICA (VETERINARIA)
+// ============================================================================
+// CORRECCIÓN: Apuntamos directamente al archivo .vue
+import ClinicaLayout from '../core/layouts/ClinicaLayout.vue' 
+import ClinicaDashboardView from '../modules/clinica/views/DashboardView.vue'
+import EmpleadosView from '../modules/clinica/views/EmpleadosView.vue'
+import DuenosView from '../modules/clinica/views/DuenosView.vue'
+
+// ============================================================================
+// CONFIGURACIÓN DE RUTAS
+// ============================================================================
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -16,21 +28,49 @@ const router = createRouter({
       name: 'login', 
       component: LoginView 
     },
+    
+    // ------------------------------------------------------------------------
+    // ZONA 1: SÚPER ADMINISTRADOR
+    // ------------------------------------------------------------------------
     {
-      // RUTA PADRE: El Layout con el menú lateral
       path: '/saas-global',
       component: SaasLayout,
       children: [
         {
-          path: '', // Al entrar a /saas-global, carga el Dashboard
+          path: '', 
           name: 'saas-dashboard',
-          component: DashboardView
+          component: SaasDashboardView
         },
         {
-          path: 'clinicas', // Al entrar a /saas-global/clinicas, carga la tabla
+          path: 'clinicas', 
           name: 'saas-clinicas',
           component: ClinicasView
         }
+      ]
+    },
+
+    // ------------------------------------------------------------------------
+    // ZONA 2: PORTAL DE LA CLÍNICA VETERINARIA
+    // ------------------------------------------------------------------------
+    {
+      path: '/clinica',
+      component: ClinicaLayout,
+      children: [
+        { 
+          path: 'dashboard', 
+          name: 'clinica-dashboard',
+          component: ClinicaDashboardView 
+        },
+        { 
+          path: 'empleados', 
+          name: 'clinica-empleados',
+          component: EmpleadosView 
+        },
+        { 
+          path: 'clientes', 
+          name: 'clinica-clientes',
+          component: DuenosView 
+        } 
       ]
     }
   ]
