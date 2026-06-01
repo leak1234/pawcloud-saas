@@ -15,12 +15,12 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     
-    # Ruta de prueba para verificar que el backend levantó
+    # Conectamos el módulo saas_admin
+    from .saas_admin.routes import saas_admin_bp
+    app.register_blueprint(saas_admin_bp)
+    
     @app.route('/api/status', methods=['GET'])
     def status():
-        return jsonify({
-            "status": "online",
-            "message": "¡El motor de PawCloud está funcionando al 100%!"
-        })
+        return jsonify({"status": "online"})
 
     return app
