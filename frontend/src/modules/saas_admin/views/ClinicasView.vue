@@ -1,7 +1,7 @@
 <template>
   <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="text-dark fw-bold fs-3">Gestión de Clínicas</h1>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+      <h1 class="text-dark fw-bold fs-3 mb-0">Gestión de Clínicas</h1>
       <button class="btn btn-primary fw-bold shadow-sm" @click="abrirModalCrear">
         + Nueva Clínica
       </button>
@@ -11,17 +11,14 @@
       <div class="card-body py-3">
         <div class="row g-2">
           <div class="col-md-8">
-            <input 
-              type="text" 
-              class="form-control border-secondary-subtle" 
-              placeholder="🔍 Buscar por negocio, administrador o correo..." 
-              v-model="filtroTexto"
-            />
+            <input type="text" class="form-control border-secondary-subtle"
+              placeholder="🔍 Buscar por negocio, administrador o correo..." v-model="filtroTexto" />
           </div>
           <div class="col-md-4">
-            <select class="form-select border-secondary-subtle fw-semibold" v-model="filtroEstado">
+            <select class="form-select border-secondary-subtle fw-semibold text-truncate" v-model="filtroEstado">
               <option value="activos">🟢 Solo Clínicas Activas</option>
               <option value="inactivos">🔴 Solo Clínicas Suspendidas</option>
+              <option value="vencidas">🟡 Solo Clínicas Vencidas</option>
               <option value="todos">⚪ Mostrar Todas</option>
             </select>
           </div>
@@ -34,223 +31,269 @@
         <table class="table table-hover table-striped mb-0 align-middle">
           <thead class="table-dark">
             <tr>
-              <th class="ps-3">ID</th>
+              <th class="ps-3 d-none d-md-table-cell">ID</th>
               <th>Negocio</th>
-              <th>NIT</th>
-              <th>Dirección Física</th>
-              <th>Administrador</th>
-              <th>Correo Electrónico</th>
+              <th class="d-none d-lg-table-cell">NIT</th>
+              <th class="d-none d-lg-table-cell">Dirección Física</th>
+              <th class="d-none d-md-table-cell">Plan</th>
+              <th>Vencimiento</th>
+              <th class="d-none d-md-table-cell">Administrador</th>
+              <th class="d-none d-lg-table-cell">Correo Electrónico</th>
               <th>Estado</th>
               <th class="text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="clinica in clinicasFiltradas" :key="clinica.id">
-              <td class="ps-3">{{ clinica.id }}</td>
-              <td class="fw-bold text-dark">{{ clinica.nombre_negocio }}</td>
-              <td>{{ clinica.nit }}</td>
-              <td>{{ clinica.direccion }}</td>
-              <td>{{ clinica.nombre_usuario }}</td>
-              <td>{{ clinica.email }}</td>
-              <td>
-                <span class="badge" :class="clinica.activo ? 'bg-success' : 'bg-danger'">
-                  {{ clinica.activo ? 'Activa' : 'Suspendida' }}
+            <tr v-for="clinica in clinicasPaginadas" :key="clinica.id">
+              <td class="ps-3 d-none d-md-table-cell">{{ clinica.id }}</td>
+
+              <td class="fw-bold text-dark">
+                {{ clinica.nombre_negocio }}
+                <div class="d-block d-md-none mt-1">
+                  <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle"
+                    style="font-size: 0.7rem;">
+                    {{ clinica.nombre_plan }}
+                  </span>
+                </div>
+              </td>
+
+              <td class="d-none d-lg-table-cell">{{ clinica.nit }}</td>
+              <td class="d-none d-lg-table-cell">{{ clinica.direccion }}</td>
+
+              <td class="d-none d-md-table-cell">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">
+                  {{ clinica.nombre_plan }}
                 </span>
               </td>
+
+              <td class="fw-semibold text-secondary">
+                🗓️ <span class="d-none d-sm-inline">{{ clinica.fecha_vencimiento }}</span>
+                <span class="d-inline d-sm-none">{{ clinica.fecha_vencimiento.slice(5) }}</span>
+              </td>
+
+              <td class="d-none d-md-table-cell">{{ clinica.nombre_usuario }}</td>
+              <td class="d-none d-lg-table-cell">{{ clinica.email }}</td>
+
+              <td>
+                <span class="badge shadow-sm text-uppercase" :class="{
+                  'bg-success': clinica.estado_real === 'activa',
+                  'bg-warning text-dark': clinica.estado_real === 'vencida',
+                  'bg-danger': clinica.estado_real === 'suspendida'
+                }">
+                  {{ clinica.estado_real === 'activa' ? 'Activa' :
+                    clinica.estado_real === 'vencida' ? 'Vencida' : 'Suspendida' }}
+                </span>
+              </td>
+
               <td class="text-center">
-                <div class="d-flex justify-content-center gap-2">
-                  <button class="btn btn-warning btn-sm text-dark fw-bold" @click="abrirModalEditar(clinica)">
-                    ✏️ Editar
+                <div class="d-flex flex-column flex-lg-row justify-content-center align-items-center gap-2">
+                  <button class="btn btn-info btn-sm text-white fw-bold shadow-sm w-100"
+                    @click="renovarSuscripcion(clinica)">
+                    🔄 <span class="d-none d-lg-inline">Renovar</span>
                   </button>
-                  <button 
-                    class="btn btn-sm fw-bold text-white" 
-                    :class="clinica.activo ? 'btn-danger' : 'btn-success'"
-                    @click="alternarEstado(clinica)"
-                    style="width: 90px;">
+                  <button class="btn btn-warning btn-sm text-dark fw-bold shadow-sm w-100"
+                    @click="abrirModalEditar(clinica)">
+                    ✏️ <span class="d-none d-lg-inline">Editar</span>
+                  </button>
+                  <button class="btn btn-sm fw-bold text-white shadow-sm w-100"
+                    :class="clinica.activo ? 'btn-danger' : 'btn-success'" @click="alternarEstado(clinica)">
                     {{ clinica.activo ? 'Suspender' : 'Reactivar' }}
                   </button>
                 </div>
               </td>
             </tr>
-            <tr v-if="clinicasFiltradas.length === 0">
-              <td colspan="8" class="text-center text-muted py-4">
+            <tr v-if="clinicasPaginadas.length === 0">
+              <td colspan="10" class="text-center text-muted py-4">
                 No se encontraron clínicas que coincidan con los filtros.
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
 
-    <div v-if="mostrarModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.6);">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg border-0">
-          
-          <div class="modal-header bg-light">
-            <h5 class="modal-title fw-bold text-dark">
-              {{ editandoId ? 'Editar Clínica' : 'Registrar Nueva Clínica' }}
-            </h5>
-            <button type="button" class="btn-close" @click="cerrarModal"></button>
-          </div>
-
-          <form @submit.prevent="guardarClinica">
-            <div class="modal-body">
-              <div class="mb-3">
-                <label class="form-label fw-semibold text-secondary small">Nombre del Negocio:</label>
-                <input type="text" class="form-control" v-model="nuevaClinica.nombre_negocio" required />
-              </div>
-              <div class="mb-3">
-                <label class="form-label fw-semibold text-secondary small">NIT (Opcional):</label>
-                <input type="text" class="form-control" v-model="nuevaClinica.nit" />
-              </div>
-              <div class="mb-3">
-                <label class="form-label fw-semibold text-secondary small">Dirección Física:</label>
-                <input type="text" class="form-control" v-model="nuevaClinica.direccion" required />
-              </div>
-              <div class="mb-3">
-                <label class="form-label fw-semibold text-secondary small">Veterinario Administrador:</label>
-                <input type="text" class="form-control" v-model="nuevaClinica.nombre_usuario" required />
-              </div>
-              <div class="mb-3">
-                <label class="form-label fw-semibold text-secondary small">Correo Electrónico:</label>
-                <input type="email" class="form-control" v-model="nuevaClinica.email" required />
-              </div>
-              <div class="mb-1">
-                <label class="form-label fw-semibold text-secondary small">
-                  Contraseña {{ editandoId ? '(Dejar vacío para no cambiar)' : '' }}:
-                </label>
-                <input type="password" class="form-control" v-model="nuevaClinica.password" :required="!editandoId" />
-              </div>
-            </div>
-
-            <div class="modal-footer bg-light border-0">
-              <button type="button" class="btn btn-secondary fw-bold" @click="cerrarModal">Cancelar</button>
-              <button type="submit" class="btn btn-success fw-bold">
-                {{ editandoId ? 'Guardar Cambios' : 'Registrar' }}
-              </button>
-            </div>
-          </form>
-
+      <div class="card-footer bg-white d-flex flex-column flex-md-row justify-content-between align-items-center py-3 border-0 border-top" v-if="totalPaginas > 1">
+        <span class="text-muted small mb-2 mb-md-0 fw-semibold">
+          Mostrando {{ (paginaActual - 1) * elementosPorPagina + 1 }} a 
+          {{ Math.min(paginaActual * elementosPorPagina, clinicasFiltradas.length) }} 
+          de {{ clinicasFiltradas.length }} clínicas
+        </span>
+        
+        <div class="btn-group shadow-sm">
+          <button class="btn btn-outline-primary btn-sm fw-bold" 
+                  :disabled="paginaActual === 1" 
+                  @click="paginaActual--">
+            ◀ Anterior
+          </button>
+          <button class="btn btn-primary btn-sm fw-bold px-3" disabled>
+            Página {{ paginaActual }} de {{ totalPaginas }}
+          </button>
+          <button class="btn btn-outline-primary btn-sm fw-bold" 
+                  :disabled="paginaActual === totalPaginas" 
+                  @click="paginaActual++">
+            Siguiente ▶
+          </button>
         </div>
       </div>
     </div>
+
+    <ModalClinica 
+      :show="modal.show" 
+      :editandoId="modal.editandoId" 
+      :clinicaData="modal.data"
+      :planesDisponibles="planesDisponibles"
+      @close="modal.show = false" 
+      @guardado="alGuardar" 
+    />
+
   </div>
 </template>
 
 <script setup>
-// IMPORTANTE: Importamos 'computed' de vue
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import axios from 'axios';
+import Swal from 'sweetalert2';
+import ModalClinica from '../components/clinicas/ModalClinica.vue'; // <-- IMPORTACIÓN DEL HIJO
 
 const listaClinicas = ref([]);
-const mostrarModal = ref(false);
-const editandoId = ref(null);
-
-// NUEVO: Variables reactivas para los filtros
+const planesDisponibles = ref([]);
 const filtroTexto = ref('');
-const filtroEstado = ref('activos'); // Valor por defecto
+const filtroEstado = ref('activos');
+const paginaActual = ref(1);
+const elementosPorPagina = ref(6);
+let intervaloActualizacion;
 
-const nuevaClinica = ref({
-  nombre_negocio: '', nit: '', direccion: '', nombre_usuario: '', email: '', password: '', rol: 'admin'
+// ESTADO DEL MODAL
+const modal = ref({ show: false, editandoId: null, data: null });
+
+watch([filtroTexto, filtroEstado], () => {
+  paginaActual.value = 1;
 });
 
-// NUEVO: La propiedad computada que hace la magia de filtrar
 const clinicasFiltradas = computed(() => {
   return listaClinicas.value.filter(clinica => {
-    // 1. Filtrar por el Dropdown (Estado)
     let pasaEstado = true;
     if (filtroEstado.value === 'activos') {
-      pasaEstado = clinica.activo === true;
+      pasaEstado = clinica.estado_real !== 'suspendida';
     } else if (filtroEstado.value === 'inactivos') {
-      pasaEstado = clinica.activo === false;
+      pasaEstado = clinica.estado_real === 'suspendida';
+    } else if (filtroEstado.value === 'vencidas') {
+      pasaEstado = clinica.estado_real === 'vencida';
     }
 
-    // 2. Filtrar por la Barra de Búsqueda (Texto)
     const termino = filtroTexto.value.toLowerCase();
-    const pasaTexto = 
+    const pasaTexto =
       clinica.nombre_negocio.toLowerCase().includes(termino) ||
       clinica.nombre_usuario.toLowerCase().includes(termino) ||
       clinica.email.toLowerCase().includes(termino);
 
-    // Retorna true solo si cumple ambas condiciones
     return pasaEstado && pasaTexto;
   });
+});
+
+const totalPaginas = computed(() => Math.ceil(clinicasFiltradas.value.length / elementosPorPagina.value));
+const clinicasPaginadas = computed(() => {
+  const inicio = (paginaActual.value - 1) * elementosPorPagina.value;
+  return clinicasFiltradas.value.slice(inicio, inicio + elementosPorPagina.value);
 });
 
 const cargarClinicas = async () => {
   try {
     const res = await axios.get('http://localhost:5000/api/admin/clinicas');
     listaClinicas.value = res.data;
-  } catch (error) {
-    console.error("Error al cargar clínicas", error);
-  }
+  } catch (error) { console.error(error); }
 };
 
+const cargarPlanes = async () => {
+  try {
+    const res = await axios.get('http://localhost:5000/api/admin/planes');
+    // Filtramos para que el select solo muestre planes activos
+    planesDisponibles.value = res.data.filter(p => p.activo);
+  } catch (error) { console.error(error); }
+};
+
+// CONTROLES DEL MODAL
 const abrirModalCrear = () => {
-  editandoId.value = null;
-  nuevaClinica.value = { nombre_negocio: '', nit: '', direccion: '', nombre_usuario: '', email: '', password: '', rol: 'admin' };
-  mostrarModal.value = true;
+  modal.value = { show: true, editandoId: null, data: null };
 };
 
 const abrirModalEditar = (clinica) => {
-  editandoId.value = clinica.id;
-  nuevaClinica.value = {
-    nombre_negocio: clinica.nombre_negocio,
-    nit: clinica.nit === 'S/N' ? '' : clinica.nit,
-    direccion: clinica.direccion === 'Sin dirección' ? '' : clinica.direccion,
-    nombre_usuario: clinica.nombre_usuario,
-    email: clinica.email,
-    password: '',
-    rol: 'admin'
-  };
-  mostrarModal.value = true;
+  modal.value = { show: true, editandoId: clinica.id, data: clinica };
 };
 
-const guardarClinica = async () => {
-  try {
-    const payload = {
-      nombre_negocio: nuevaClinica.value.nombre_negocio,
-      nit: nuevaClinica.value.nit,
-      direccion: nuevaClinica.value.direccion,
-      nombre_usuario: nuevaClinica.value.nombre_usuario,
-      email: nuevaClinica.value.email,
-      password: nuevaClinica.value.password,
-      rol: 'admin'
-    };
-
-    if (editandoId.value) {
-      await axios.put(`http://localhost:5000/api/admin/clinicas/${editandoId.value}`, payload);
-      alert('Clínica actualizada con éxito.');
-    } else {
-      await axios.post('http://localhost:5000/api/admin/registrar', payload);
-      alert('Clínica registrada correctamente.');
-    }
-    cerrarModal();
-    cargarClinicas();
-  } catch (error) {
-    alert(error.response?.data?.error || 'Error al procesar la solicitud');
-  }
+const alGuardar = () => {
+  modal.value.show = false;
+  cargarClinicas();
 };
 
+// --- ALERTA CONFIRMAR AL SUSPENDER CLÍNICA ---
 const alternarEstado = async (clinica) => {
-  try {
-    const res = await axios.post(`http://localhost:5000/api/admin/clinicas/${clinica.id}/cambiar-estado`);
-    clinica.activo = res.data.nuevo_estado; 
-    // Magia de Vue: Al cambiar el estado, la tabla se actualiza sola y la clínica desaparece de la vista "activos"
-  } catch (error) {
-    alert('Error al cambiar el estado');
+  const accionText = clinica.activo ? 'suspender' : 'reactivar';
+  const descripcionText = clinica.activo 
+    ? 'El administrador y sus empleados ya no podrán ingresar al sistema.' 
+    : 'La clínica volverá a tener acceso a sus datos.';
+  const botonClase = clinica.activo ? 'btn-danger' : 'btn-success';
+
+  const resultado = await Swal.fire({
+    title: `¿Deseas ${accionText} esta clínica?`,
+    text: descripcionText,
+    icon: 'warning',
+    showCancelButton: true,
+    buttonsStyling: false,
+    customClass: {
+      confirmButton: `btn ${botonClase} px-4 mx-2 shadow-sm`,
+      cancelButton: 'btn btn-secondary px-4 mx-2 shadow-sm',
+      popup: 'rounded-4 shadow-lg border-0'
+    },
+    confirmButtonText: `Sí, ${accionText}`,
+    cancelButtonText: 'Cancelar'
+  });
+
+  if (resultado.isConfirmed) {
+    try {
+      await axios.post(`http://localhost:5000/api/admin/clinicas/${clinica.id}/cambiar-estado`);
+      cargarClinicas();
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Clínica ${clinica.activo ? 'suspendida' : 'reactivada'}`, showConfirmButton: false, timer: 2000 });
+    } catch (error) {
+      Swal.fire({ title: 'Error', text: 'No se pudo cambiar el estado.', icon: 'error' });
+    }
   }
 };
 
-const cerrarModal = () => {
-  mostrarModal.value = false;
+// --- ALERTA CONFIRMAR RENOVACIÓN DE PAGO ---
+const renovarSuscripcion = async (clinica) => {
+  const resultado = await Swal.fire({
+    title: '¿Confirmar Pago Manual?',
+    html: `Al confirmar, se añadirán <b>+30 días</b> al vencimiento de:<br><br><span class="fs-5 fw-bold text-primary">${clinica.nombre_negocio}</span>`,
+    icon: 'info',
+    showCancelButton: true,
+    buttonsStyling: false,
+    customClass: {
+      confirmButton: 'btn btn-info text-white px-4 mx-2 shadow-sm fw-bold',
+      cancelButton: 'btn btn-secondary px-4 mx-2 shadow-sm',
+      popup: 'rounded-4 shadow-lg border-0'
+    },
+    confirmButtonText: 'Sí, registrar pago',
+    cancelButtonText: 'Cancelar'
+  });
+
+  if (resultado.isConfirmed) {
+    try {
+      const res = await axios.post(`http://localhost:5000/api/admin/clinicas/${clinica.id}/renovar`);
+      cargarClinicas();
+      Swal.fire({ title: '¡Suscripción Renovada!', html: `${res.data.mensaje}<br><br>Nueva fecha: <b>${res.data.nueva_fecha}</b>`, icon: 'success', buttonsStyling: false, customClass: { confirmButton: 'btn btn-primary px-4 shadow-sm' } });
+    } catch (error) {
+      Swal.fire({ title: 'Error', text: error.response?.data?.error || 'No se pudo registrar la renovación.', icon: 'error', buttonsStyling: false, customClass: { confirmButton: 'btn btn-primary px-4 shadow-sm' } });
+    }
+  }
 };
 
 onMounted(() => {
   cargarClinicas();
+  cargarPlanes();
+  intervaloActualizacion = setInterval(() => { cargarClinicas(); }, 60000);
+});
+
+onUnmounted(() => {
+  if (intervaloActualizacion) clearInterval(intervaloActualizacion);
 });
 </script>
-
-<style scoped>
-/* Sin CSS extra. Bootstrap maneja todo */
-</style>

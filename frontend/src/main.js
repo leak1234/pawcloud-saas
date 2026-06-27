@@ -2,6 +2,13 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router/index.js'
 
+// 1. Estilos y Scripts de Bootstrap
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'
+
+// 2. Íconos de Bootstrap
+import 'bootstrap-icons/font/bootstrap-icons.css'
+
 const app = createApp(App)
-app.use(router) // <- ¡ESTA LÍNEA ES VITAL!
+app.use(router) 
 app.mount('#app')
